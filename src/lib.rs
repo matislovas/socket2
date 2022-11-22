@@ -51,7 +51,7 @@
 //! that are not available on all OSs.
 
 #![doc(html_root_url = "https://docs.rs/socket2/0.4")]
-#![deny(missing_docs, missing_debug_implementations, rust_2018_idioms)]
+#![deny(rust_2018_idioms)]
 // Show required OS/features on docs.rs.
 #![cfg_attr(docsrs, feature(doc_cfg))]
 // Disallow warnings when running tests.
@@ -78,7 +78,7 @@ macro_rules! impl_debug {
             $(#[$target: meta])*
             // The flag(s) to check.
             // Need to specific the libc crate because Windows doesn't use
-            // `libc` but `windows_sys`.
+            // `libc` but `winapi`.
             $libc: ident :: $flag: ident
         ),+ $(,)*
     ) => {
@@ -115,63 +115,14 @@ macro_rules! from {
     };
 }
 
-/// Link to online documentation for (almost) all supported OSs.
-#[rustfmt::skip]
-macro_rules! man_links {
-    // Links to all OSs.
-    ($syscall: tt ( $section: tt ) ) => {
-        concat!(
-            man_links!(__ intro),
-            man_links!(__ unix $syscall($section)),
-            man_links!(__ windows $syscall($section)),
-        )
-    };
-    // Links to Unix-like OSs.
-    (unix: $syscall: tt ( $section: tt ) ) => {
-        concat!(
-            man_links!(__ intro),
-            man_links!(__ unix $syscall($section)),
-        )
-    };
-    // Links to Windows only.
-    (windows: $syscall: tt ( $section: tt ) ) => {
-        concat!(
-            man_links!(__ intro),
-            man_links!(__ windows $syscall($section)),
-        )
-    };
-    // Internals.
-    (__ intro) => {
-        "\n\nAdditional documentation can be found in manual of the OS:\n\n"
-    };
-    // List for Unix-like OSs.
-    (__ unix $syscall: tt ( $section: tt ) ) => {
-        concat!(
-            " * DragonFly BSD: <https://man.dragonflybsd.org/?command=", stringify!($syscall), "&section=", stringify!($section), ">\n",
-            " * FreeBSD: <https://www.freebsd.org/cgi/man.cgi?query=", stringify!($syscall), "&sektion=", stringify!($section), ">\n",
-            " * Linux: <https://man7.org/linux/man-pages/man", stringify!($section), "/", stringify!($syscall), ".", stringify!($section), ".html>\n",
-            " * macOS: <https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/", stringify!($syscall), ".", stringify!($section), ".html> (archived, actually for iOS)\n",
-            " * NetBSD: <https://man.netbsd.org/", stringify!($syscall), ".", stringify!($section), ">\n",
-            " * OpenBSD: <https://man.openbsd.org/", stringify!($syscall), ".", stringify!($section), ">\n",
-            " * iOS: <https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/", stringify!($syscall), ".", stringify!($section), ".html> (archived)\n",
-            " * illumos: <https://illumos.org/man/3SOCKET/", stringify!($syscall), ">\n",
-        )
-    };
-    // List for Window (so just Windows).
-    (__ windows $syscall: tt ( $section: tt ) ) => {
-        concat!(
-            " * Windows: <https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-", stringify!($syscall), ">\n",
-        )
-    };
-}
-
 mod sockaddr;
 mod socket;
 mod sockref;
 
+/// Sys module
 #[cfg_attr(unix, path = "sys/unix.rs")]
 #[cfg_attr(windows, path = "sys/windows.rs")]
-mod sys;
+pub mod sys;
 
 #[cfg(not(any(windows, unix)))]
 compile_error!("Socket2 doesn't support the compile target");
@@ -210,9 +161,6 @@ impl Domain {
 
     /// Domain for IPv6 communication, corresponding to `AF_INET6`.
     pub const IPV6: Domain = Domain(sys::AF_INET6);
-
-    /// Domain for Unix socket communication, corresponding to `AF_UNIX`.
-    pub const UNIX: Domain = Domain(sys::AF_UNIX);
 
     /// Returns the correct domain for `address`.
     pub const fn for_address(address: SocketAddr) -> Domain {
@@ -303,14 +251,6 @@ impl Protocol {
 
     /// Protocol corresponding to `UDP`.
     pub const UDP: Protocol = Protocol(sys::IPPROTO_UDP);
-
-    #[cfg(target_os = "linux")]
-    /// Protocol corresponding to `MPTCP`.
-    pub const MPTCP: Protocol = Protocol(sys::IPPROTO_MPTCP);
-
-    #[cfg(all(feature = "all", any(target_os = "freebsd", target_os = "linux")))]
-    /// Protocol corresponding to `SCTP`.
-    pub const SCTP: Protocol = Protocol(sys::IPPROTO_SCTP);
 }
 
 impl From<c_int> for Protocol {
