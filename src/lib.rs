@@ -181,6 +181,7 @@ use sys::c_int;
 pub use sockaddr::SockAddr;
 pub use socket::Socket;
 pub use sockref::SockRef;
+pub use sys::*;
 
 #[cfg(not(any(
     target_os = "haiku",
